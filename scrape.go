@@ -7,29 +7,56 @@ import (
 	"strings"
 )
 
-func Scrape(url, separator string) (string, string, error) {
-	resp, err := request(url)
+type NHKScraper struct {
+	url       string
+	separator string
+	doc       *goquery.Document
+}
+
+func New(url, separator string) *NHKScraper {
+	s := new(NHKScraper)
+	s.url = url
+	s.separator = separator
+	doc, err := s.getDocument()
 	if err != nil {
-		return "", "", err
+		panic(err)
 	}
-	doc, err := getDocument(resp)
-	if err != nil {
-		return "", "", err
-	}
-	title := doc.Find("title").Text()
+	s.doc = doc
+	return s
+}
+
+func (s *NHKScraper) Scrape() (string, string) {
+	title := s.doc.Find("title").Text()
 	title = prettyTitle(title)
 	var text string
-	newsarticle := doc.Find("#newsarticle")
+	newsarticle := s.doc.Find("#newsarticle")
 	newsarticle.Children().Each(func(i int, paragraph *goquery.Selection) {
 		text += getTextNodes(paragraph)
 		if paragraph.Next().Children().Length() > 0 {
-			text += separator
+			text += s.separator
 		}
 	})
-	return title, text, err
+	return title, text
 }
 
-func getDocument(resp *http.Response) (*goquery.Document, error) {
+func (s *NHKScraper) request() (*http.Response, error) {
+	resp, err := http.Get(s.url)
+	if err != nil {
+		err = errors.New("HTTP Protocol Error")
+		return nil, err
+	}
+	if resp.StatusCode == 404 {
+		err = errors.New("Status code 404. Check URL")
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (s *NHKScraper) getDocument() (*goquery.Document, error) {
+	resp, err := s.request()
+	if err != nil {
+		return nil, err
+	}
 	doc, err := goquery.NewDocumentFromResponse(resp)
 	defer resp.Body.Close()
 	if err != nil {
@@ -56,17 +83,4 @@ func getTextNodes(s *goquery.Selection) string {
 
 func prettyTitle(title string) string {
 	return strings.Split(title, "|")[1]
-}
-
-func request(url string) (*http.Response, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		err = errors.New("HTTP Protocol Error")
-		return nil, err
-	}
-	if resp.StatusCode == 404 {
-		err = errors.New("Status code 404. Check URL")
-		return nil, err
-	}
-	return resp, nil
 }
