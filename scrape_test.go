@@ -11,7 +11,7 @@ import (
 func TestScrape(t *testing.T) {
 	dat, err := ioutil.ReadFile("mock.html")
 	if err != nil {
-		panic(err)
+		t.Error("Error reading file")
 	}
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, string(dat))
@@ -20,7 +20,10 @@ func TestScrape(t *testing.T) {
 	defer ts.Close()
 	separator := "\n"
 	n := New(ts.URL, separator)
-	title, text := n.Scrape()
+	title, text, err := n.Scrape()
+	if err != nil {
+		t.Error("Error should be nil")
+	}
 	if title != "長野県で震度６弱の地震　これからも十分に注意して" {
 		t.Error("Bad title")
 	}

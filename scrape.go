@@ -17,26 +17,25 @@ func New(url, separator string) *NHKScraper {
 	s := new(NHKScraper)
 	s.url = url
 	s.separator = separator
-	doc, err := s.getDocument()
-	if err != nil {
-		panic(err)
-	}
-	s.doc = doc
 	return s
 }
 
-func (s *NHKScraper) Scrape() (string, string) {
-	title := s.doc.Find("title").Text()
+func (s *NHKScraper) Scrape() (string, string, error) {
+	doc, err := s.getDocument()
+	if err != nil {
+		return "", "", err
+	}
+	title := doc.Find("title").Text()
 	title = prettyTitle(title)
 	var text string
-	newsarticle := s.doc.Find("#newsarticle")
+	newsarticle := doc.Find("#newsarticle")
 	newsarticle.Children().Each(func(i int, paragraph *goquery.Selection) {
 		text += getTextNodes(paragraph)
 		if paragraph.Next().Children().Length() > 0 {
 			text += s.separator
 		}
 	})
-	return title, text
+	return title, text, nil
 }
 
 func (s *NHKScraper) request() (*http.Response, error) {
