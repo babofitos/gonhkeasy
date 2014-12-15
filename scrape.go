@@ -3,26 +3,29 @@ package main
 import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"strings"
 )
 
-var url = "http://www3.nhk.or.jp/news/easy/k10013455581000/k10013455581000.html"
-
-func Scrape() {
+func Scrape(url, separator string) {
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
 		panic(err)
 	}
 
-	title := doc.Find("title").First().Text()
-	fmt.Printf("%v\n", title)
-
-	newsarticle := doc.Find("#newsarticle")
-
+	title := doc.Find("title").Text()
 	var text string
 
-	text = getTextNodes(newsarticle.Children())
+	fmt.Println(prettyTitle(title))
 
-	fmt.Printf("%v", text)
+	newsarticle := doc.Find("#newsarticle")
+	newsarticle.Children().Each(func(i int, paragraph *goquery.Selection) {
+		if paragraph.Children().Length() > 0 {
+			text += getTextNodes(paragraph)
+			text += separator
+		}
+	})
+
+	fmt.Print(text)
 }
 
 func getTextNodes(s *goquery.Selection) string {
@@ -42,6 +45,18 @@ func getTextNodes(s *goquery.Selection) string {
 	return output
 }
 
+func prettyTitle(title string) string {
+	return strings.Split(title, "|")[1]
+}
+
 func main() {
-	Scrape()
+	var (
+		url       string
+		separator string
+	)
+	fmt.Print("Input URL:")
+	fmt.Scan(&url)
+	fmt.Print("Input Separator:")
+	fmt.Scan(&separator)
+	Scrape(url, separator)
 }
