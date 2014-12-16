@@ -25,10 +25,11 @@ func (s *NHKScraper) Scrape() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	title := doc.Find("title").Text()
+	s.doc = doc
+	title := s.doc.Find("title").Text()
 	title = prettyTitle(title)
 	var text string
-	newsarticle := doc.Find("#newsarticle")
+	newsarticle := s.doc.Find("#newsarticle")
 	newsarticle.Children().Each(func(i int, paragraph *goquery.Selection) {
 		text += getTextNodes(paragraph)
 		if paragraph.Next().Children().Length() > 0 {
